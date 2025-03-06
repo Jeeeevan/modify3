@@ -18,11 +18,9 @@ type NodeMapProps = {
 };
 
 function NodeMap({ n, setLogs, logs }: NodeMapProps) {
-  const [highlightedAttackers, setHighlightedAttackers] = useState<number[]>([]);
-  const [highlightedVictims, setHighlightedVictims] = useState<number[]>([]);
-  const [attackLines, setAttackLines] = useState<{ attacker: number; victim: number }[]>([]);
+  const [highlightedNodes, setHighlightedNodes] = useState<{ attacker: number; victim: number }[]>([]);
   const [attackGraphData, setAttackGraphData] = useState<{ time: string; attacks: number }[]>([]);
-  const gridRef = useRef<HTMLDivElement>(null); // Reference to the grid for positioning
+  const gridRef = useRef<HTMLDivElement>(null); // Reference for positioning
 
   useEffect(() => {
     if (logs.length === 0) return;
@@ -34,18 +32,12 @@ function NodeMap({ n, setLogs, logs }: NodeMapProps) {
       const attacker = parseInt(match[1]);
       const victim = parseInt(match[2]);
 
-      // Highlight attacker and victim
-      setHighlightedAttackers([attacker]);
-      setHighlightedVictims([victim]);
+      // Highlight attacker & victim + Draw attack line
+      setHighlightedNodes((prev) => [...prev, { attacker, victim }]);
 
-      // Draw attack line
-      setAttackLines((prev) => [...prev, { attacker, victim }]);
-
-      // Remove highlight and attack line after 3 seconds
+      // Revert colors and remove the attack line after 3 seconds
       setTimeout(() => {
-        setHighlightedAttackers([]);
-        setHighlightedVictims([]);
-        setAttackLines((prev) => prev.filter((line) => line.attacker !== attacker || line.victim !== victim));
+        setHighlightedNodes((prev) => prev.filter((entry) => entry.attacker !== attacker || entry.victim !== victim));
       }, 3000);
 
       // Update attack graph
@@ -72,17 +64,18 @@ function NodeMap({ n, setLogs, logs }: NodeMapProps) {
         <Grid templateColumns="repeat(auto-fit, minmax(100px, 1fr))" gap={4} position="relative">
           {Array.from({ length: n }, (_, index) => {
             const nodeId = index + 1;
+            const isHighlighted = highlightedNodes.find((entry) => entry.attacker === nodeId || entry.victim === nodeId);
+            const bgColor = isHighlighted
+              ? nodeId === isHighlighted.attacker
+                ? "red.700" // 🔴 Attacker during attack
+                : "yellow.500" // 🟡 Victim during attack
+              : "blue.600"; // 🔵 Default color
+
             return (
               <Box
                 key={nodeId}
                 position="relative"
-                bg={
-                  highlightedAttackers.includes(nodeId)
-                    ? "red.700" // Attacker (during attack)
-                    : highlightedVictims.includes(nodeId)
-                    ? "yellow.500" // Victim (during attack)
-                    : "blue.600" // Default color for all nodes
-                }
+                bg={bgColor}
                 color="white"
                 display="flex"
                 flexDirection="column"
@@ -92,7 +85,7 @@ function NodeMap({ n, setLogs, logs }: NodeMapProps) {
                 borderRadius="md"
                 boxShadow="md"
                 minWidth="100px"
-                data-nodeid={nodeId} // Custom attribute to locate the node
+                data-nodeid={nodeId} // Custom attribute for positioning
               >
                 <FaDesktop size={32} />
                 <Text mt={2}>Node {nodeId}</Text>
@@ -102,7 +95,7 @@ function NodeMap({ n, setLogs, logs }: NodeMapProps) {
         </Grid>
 
         {/* Attack Lines (Dotted) */}
-        {attackLines.map((line, index) => {
+        {highlightedNodes.map((line, index) => {
           const attackerNode = document.querySelector(`[data-nodeid="${line.attacker}"]`);
           const victimNode = document.querySelector(`[data-nodeid="${line.victim}"]`);
 
@@ -129,7 +122,10 @@ function NodeMap({ n, setLogs, logs }: NodeMapProps) {
                 strokeWidth="2"
                 strokeDasharray="5,5"
                 opacity="0.8"
-              />
+              >
+                {/* Animation for attack line */}
+                <animate attributeName="stroke-dashoffset" from="10" to="0" dur="1s" repeatCount="indefinite" />
+              </line>
             </svg>
           );
         })}
