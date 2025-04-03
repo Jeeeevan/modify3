@@ -1,0 +1,26 @@
+{
+  "name": "modify3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jeeeevan/modify3.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jeeeevan/modify3/issues"
+  },
+  "homepage": "https://github.com/Jeeeevan/modify3#readme",
+  "description": "",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

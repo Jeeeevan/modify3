@@ -9,9 +9,13 @@ function Right({ logs }: RightProps) {
   const [mostAttackedVictim, setMostAttackedVictim] = useState<string>("N/A");
   const [mostFrequentAttacker, setMostFrequentAttacker] = useState<string>("N/A");
   const [mostCommonAttack, setMostCommonAttack] = useState<string>("N/A");
+
   const [victimCounts, setVictimCounts] = useState<Record<string, number>>({});
   const [attackerCounts, setAttackerCounts] = useState<Record<string, number>>({});
   const [attackTypeCounts, setAttackTypeCounts] = useState<Record<string, number>>({});
+
+  const [healingTimes, setHealingTimes] = useState<Record<string, number>>({});
+  const HEALING_DURATION = 30; 
 
   useEffect(() => {
     if (logs.length === 0) return;
@@ -22,10 +26,14 @@ function Right({ logs }: RightProps) {
 
     if (attackMatch) {
       const attackType = attackMatch[1];
-      setAttackTypeCounts(prev => {
-        const updatedCounts = { ...prev, [attackType]: (prev[attackType] || 0) + 1 };
-        const maxAttack = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1])[0][0];
-        setMostCommonAttack(maxAttack);
+
+      setAttackTypeCounts((prev) => {
+        const updatedCounts = { ...prev };
+        updatedCounts[attackType] = (updatedCounts[attackType] || 0) + 1;
+
+        const sortedAttacks = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1]);
+        setMostCommonAttack(sortedAttacks.length > 0 ? sortedAttacks[0][0] : "N/A");
+
         return updatedCounts;
       });
     }
@@ -34,23 +42,52 @@ function Right({ logs }: RightProps) {
       const attackerNode = `Node ${attackerMatch[1]}`;
       const victimNode = `Node ${attackerMatch[2]}`;
 
-      // Update attacker count
-      setAttackerCounts(prev => {
-        const updatedCounts = { ...prev, [attackerNode]: (prev[attackerNode] || 0) + 1 };
-        const maxAttacker = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1])[0][0];
-        setMostFrequentAttacker(maxAttacker);
+      setAttackerCounts((prev) => {
+        const updatedCounts = { ...prev };
+        updatedCounts[attackerNode] = (updatedCounts[attackerNode] || 0) + 1;
+
+        const sortedAttackers = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1]);
+        setMostFrequentAttacker(sortedAttackers.length > 0 ? sortedAttackers[0][0] : "N/A");
+
         return updatedCounts;
       });
 
-      // Update victim count
-      setVictimCounts(prev => {
-        const updatedCounts = { ...prev, [victimNode]: (prev[victimNode] || 0) + 1 };
-        const maxVictim = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1])[0][0];
-        setMostAttackedVictim(maxVictim);
+      setVictimCounts((prev) => {
+        const updatedCounts = { ...prev };
+        updatedCounts[victimNode] = (updatedCounts[victimNode] || 0) + 1;
+
+        const sortedVictims = Object.entries(updatedCounts).sort((a, b) => b[1] - a[1]);
+        setMostAttackedVictim(sortedVictims.length > 0 ? sortedVictims[0][0] : "N/A");
+
         return updatedCounts;
       });
+
+      setHealingTimes((prev) => ({
+        ...prev,
+        [victimNode]: HEALING_DURATION,
+      }));
     }
   }, [logs]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHealingTimes((prev) => {
+        const updatedTimes = { ...prev };
+
+        Object.keys(updatedTimes).forEach((node) => {
+          if (updatedTimes[node] > 0) {
+            updatedTimes[node] -= 1;
+          } else {
+            delete updatedTimes[node];
+          }
+        });
+
+        return updatedTimes;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <Box
@@ -65,12 +102,11 @@ function Right({ logs }: RightProps) {
       height="100vh"
       boxShadow="md"
     >
-      {/* 2 Vertically Stacked Boxes */}
-      <VStack spacing={4} width="90%" flex={1}>
-        {/* Top Box - Attack Stats */}
+      <VStack spacing={6} width="90%" flex={1}>
+        {/* Attack Stats Box with Red Glow */}
         <Box
           width="100%"
-          bg="blue.700"
+          bg="gray.700"
           flex={1}
           display="flex"
           flexDirection="column"
@@ -78,7 +114,8 @@ function Right({ logs }: RightProps) {
           justifyContent="center"
           p={4}
           borderRadius="md"
-          boxShadow="md"
+          boxShadow="0px 0px 15px rgb(11, 253, 245)" // Red Glow
+          transition="box-shadow 0.3s ease-in-out"
         >
           <Text fontSize="lg" fontWeight="bold">Most Attacked Victim:</Text>
           <Text fontSize="xl" color="yellow.300">{mostAttackedVictim}</Text>
@@ -90,20 +127,37 @@ function Right({ logs }: RightProps) {
           <Text fontSize="xl" color="orange.300">{mostCommonAttack}</Text>
         </Box>
 
-        {/* Bottom Box - Countermeasures Heading */}
+        {/* Countermeasures Box with Blue Glow */}
         <Box
           width="100%"
-          bg="blue.500"
+          bg="gray.700"
           flex={1}
           display="flex"
           alignItems="center"
           justifyContent="center"
           borderRadius="md"
-          boxShadow="md"
+          boxShadow="0px 0px 15px rgb(0, 255, 247)" // Blue Glow
+          transition="box-shadow 0.3s ease-in-out"
           p={4}
           flexDirection="column"
         >
           <Text fontSize="lg" fontWeight="bold">Countermeasures</Text>
+
+          {/* Healing Times Display */}
+          {Object.keys(healingTimes).length > 0 ? (
+            <Box mt={4} p={3} bg="gray.700" borderRadius="md">
+              <Text fontSize="md" fontWeight="bold">Healing Times:</Text>
+              {Object.entries(healingTimes).map(([node, time]) => (
+                <Text key={node} fontSize="lg" color="green.300">
+                  {node}: {time}s remaining
+                </Text>
+              ))}
+            </Box>
+          ) : (
+            <Text fontSize="md" color="gray.300" mt={2}>
+              No nodes are healing.
+            </Text>
+          )}
         </Box>
       </VStack>
     </Box>
